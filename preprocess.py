@@ -54,7 +54,7 @@ class OpenCLIPNetwork(nn.Module):
         self.model = model.to("cuda")
         self.clip_n_dims = self.config.clip_n_dims
 
-        self.positives = self.config.positives    
+        self.positives = self.config.positives
         self.negatives = self.config.negatives
         with torch.no_grad():
             tok_phrases = torch.cat([self.tokenizer(phrase) for phrase in self.positives]).to("cuda")
@@ -78,7 +78,7 @@ class OpenCLIPNetwork(nn.Module):
     @property
     def embedding_dim(self) -> int:
         return self.config.clip_n_dims
-    
+
     def gui_cb(self,element):
         self.set_positives(element.value.split(";"))
 
@@ -130,7 +130,7 @@ def create(image_list, data_list, save_folder):
         lengths = [len(v) for k, v in img_embed.items()]
         total_length = sum(lengths)
         total_lengths.append(total_length)
-        
+
         if total_length > img_embeds.shape[1]:
             pad = total_length - img_embeds.shape[1]
             img_embeds = torch.cat([
@@ -141,7 +141,7 @@ def create(image_list, data_list, save_folder):
         img_embed = torch.cat([v for k, v in img_embed.items()], dim=0)
         assert img_embed.shape[0] == total_length
         img_embeds[i, :total_length] = img_embed
-        
+
         seg_map_tensor = []
         lengths_cumsum = lengths.copy()
         for j in range(1, len(lengths)):
@@ -185,7 +185,7 @@ def _embed_clip_sam_tiles(image, sam_encoder):
             clip_embed = model.encode_image(tiles)
         clip_embed /= clip_embed.norm(dim=-1, keepdim=True)
         clip_embeds[mode] = clip_embed.detach().cpu().half()
-    
+
     return clip_embeds, seg_map
 
 def get_seg_img(mask, image):
@@ -215,7 +215,7 @@ def filter(keep: torch.Tensor, masks_result) -> None:
 def mask_nms(masks, scores, iou_thr=0.7, score_thr=0.1, inner_thr=0.2, **kwargs):
     """
     Perform mask non-maximum suppression (NMS) on a set of masks based on their scores.
-    
+
     Args:
         masks (torch.Tensor): has shape (num_masks, H, W)
         scores (torch.Tensor): The scores of the masks, has shape (num_masks,)
@@ -229,7 +229,7 @@ def mask_nms(masks, scores, iou_thr=0.7, score_thr=0.1, inner_thr=0.2, **kwargs)
 
     scores, idx = scores.sort(0, descending=True)
     num_masks = idx.shape[0]
-    
+
     masks_ord = masks[idx.view(-1), :]
     masks_area = torch.sum(masks_ord, dim=(1, 2), dtype=torch.float)
 
@@ -255,12 +255,12 @@ def mask_nms(masks, scores, iou_thr=0.7, score_thr=0.1, inner_thr=0.2, **kwargs)
     inner_iou_max_u, _ = inner_iou_matrix_u.max(dim=0)
     inner_iou_matrix_l = torch.tril(inner_iou_matrix, diagonal=1)
     inner_iou_max_l, _ = inner_iou_matrix_l.max(dim=0)
-    
+
     keep = iou_max <= iou_thr
     keep_conf = scores > score_thr
     keep_inner_u = inner_iou_max_u <= 1 - inner_thr
     keep_inner_l = inner_iou_max_l <= 1 - inner_thr
-    
+
     # If there are no masks with scores above threshold, the top 3 masks are selected
     if keep_conf.sum() == 0:
         index = scores.topk(3).indices
@@ -300,7 +300,7 @@ def sam_encoder(image):
     # pre-compute postprocess
     masks_default, masks_s, masks_m, masks_l = \
         masks_update(masks_default, masks_s, masks_m, masks_l, iou_thr=0.8, score_thr=0.7, inner_thr=0.5)
-    
+
     def mask2segmap(masks, image):
         seg_img_list = []
         seg_map = -np.ones(image.shape[:2], dtype=np.int32)
@@ -324,7 +324,7 @@ def sam_encoder(image):
         seg_images['m'], seg_maps['m'] = mask2segmap(masks_m, image)
     if len(masks_l) != 0:
         seg_images['l'], seg_maps['l'] = mask2segmap(masks_l, image)
-    
+
     # 0:default 1:s 2:m 3:l
     return seg_images, seg_maps
 
@@ -333,8 +333,8 @@ def seed_everything(seed_value):
     np.random.seed(seed_value)
     torch.manual_seed(seed_value)
     os.environ['PYTHONHASHSEED'] = str(seed_value)
-    
-    if torch.cuda.is_available(): 
+
+    if torch.cuda.is_available():
         torch.cuda.manual_seed(seed_value)
         torch.cuda.manual_seed_all(seed_value)
         torch.backends.cudnn.deterministic = True
@@ -389,10 +389,10 @@ if __name__ == '__main__':
                 global_down = 1
         else:
             global_down = orig_w / args.resolution
-            
+
         scale = float(global_down)
         resolution = (int( orig_w  / scale), int(orig_h / scale))
-        
+
         image = cv2.resize(image, resolution)
         image = torch.from_numpy(image)
         img_list.append(image)
